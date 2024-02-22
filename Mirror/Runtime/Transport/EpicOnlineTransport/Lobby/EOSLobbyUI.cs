@@ -3,8 +3,14 @@ using UnityEngine;
 using System.Collections.Generic;
 using EpicTransport;
 using Mirror;
+using Epic.OnlineServices;
+using NetworkPlayer = MonkeyMischief.Game.Network.NetworkPlayer;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 public class EOSLobbyUI : EOSLobby {
+    public static EOSLobbyUI instance;
     private string lobbyName = "My Lobby";
     private bool showLobbyList = false;
     private bool showPlayerList = false;
@@ -15,6 +21,7 @@ public class EOSLobbyUI : EOSLobby {
     //register events
     private void OnEnable() {
         //subscribe to events
+        instance = this;
         CreateLobbySucceeded += OnCreateLobbySuccess;
         JoinLobbySucceeded += OnJoinLobbySuccess;
         FindLobbiesSucceeded += OnFindLobbiesSuccess;
@@ -107,7 +114,11 @@ public class EOSLobbyUI : EOSLobby {
 
         //create lobby button
         if (GUILayout.Button("Create Lobby")) {
-            CreateLobby(4, LobbyPermissionLevel.Publicadvertised, false, new AttributeData[] { new AttributeData { Key = AttributeKeys[0], Value = lobbyName }, });
+            CreateLobby(EchoMirrorManager.MaxLobbySize, LobbyPermissionLevel.Publicadvertised, lobbyName, false, true, new AttributeData[3] {
+                            new AttributeData { Key = "lobby_name", Value = RandomString.Generate(20) },
+                            new AttributeData { Key = "lobby_public", Value = true },
+                            new AttributeData { Key = "lobby_queue", Value = "Default" }
+                        });
         }
 
         lobbyName = GUILayout.TextField(lobbyName, 40, GUILayout.Width(200));
@@ -164,10 +175,11 @@ public class EOSLobbyUI : EOSLobby {
             GUILayout.EndHorizontal();
         }
     }
+    public OnPromoteMemberCallback PromoteMemberCallback;
 
     private void DrawLobbyMenu() {
         //draws the lobby name
-        GUILayout.Label("Name: " + lobbyData.Find((x) => x.Data.Key == AttributeKeys[0]).Data.Value.AsUtf8);
+        //GUILayout.Label("Name: " + lobbyData.Find((x) => x.Data.Key == AttributeKeys[0]).Data.Value.AsUtf8);
 
         //draws players
         for (int i = 0; i < ConnectedLobbyDetails.GetMemberCount(new LobbyDetailsGetMemberCountOptions { }); i++) {
