@@ -8,6 +8,8 @@ namespace EpicTransport {
     public static class Logger {
 
         public static void EpicDebugLog(LogMessage message) {
+
+
             switch (message.Level) {
                 case LogLevel.Info:
                     Debug.Log($"Epic Manager: Category - {message.Category} Message - {message.Message}");

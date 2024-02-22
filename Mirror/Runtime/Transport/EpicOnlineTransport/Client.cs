@@ -144,6 +144,7 @@ namespace EpicTransport {
                 case InternalMessages.ACCEPT_CONNECT:
                     Connected = true;
                     OnConnected.Invoke();
+                    //Notifications.instance.delayBeforeDisappear
                     Debug.Log("Connection established.");
                     break;
                 case InternalMessages.DISCONNECT:

@@ -32,6 +32,9 @@ namespace EpicTransport {
 
         protected List<string> deadSockets;
         public bool ignoreAllMessages = false;
+        
+        private P2PInterface p2pInterface;
+
 
         // Mapping from PacketKey to a List of Packet Lists
         protected Dictionary<PacketKey, List<List<Packet>>> incomingPackets = new Dictionary<PacketKey, List<List<Packet>>>();
@@ -41,21 +44,23 @@ namespace EpicTransport {
 
             deadSockets = new List<string>();
 
-            AddNotifyPeerConnectionRequestOptions addNotifyPeerConnectionRequestOptions = new AddNotifyPeerConnectionRequestOptions();
+            AddNotifyPeerConnectionRequestOptions addNotifyPeerConnectionRequestOptions = new();
             addNotifyPeerConnectionRequestOptions.LocalUserId = EOSSDKComponent.LocalUserProductId;
             addNotifyPeerConnectionRequestOptions.SocketId = null;
 
             OnIncomingConnectionRequest += OnNewConnection;
             OnRemoteConnectionClosed += OnConnectFail;
+            
+            p2pInterface = EOSSDKComponent.GetP2PInterface();
 
-            incomingNotificationId = EOSSDKComponent.GetP2PInterface().AddNotifyPeerConnectionRequest(addNotifyPeerConnectionRequestOptions,
+            incomingNotificationId = p2pInterface.AddNotifyPeerConnectionRequest(addNotifyPeerConnectionRequestOptions,
                 null, OnIncomingConnectionRequest);
 
             AddNotifyPeerConnectionClosedOptions addNotifyPeerConnectionClosedOptions = new AddNotifyPeerConnectionClosedOptions();
             addNotifyPeerConnectionClosedOptions.LocalUserId = EOSSDKComponent.LocalUserProductId;
             addNotifyPeerConnectionClosedOptions.SocketId = null;
 
-            outgoingNotificationId = EOSSDKComponent.GetP2PInterface().AddNotifyPeerConnectionClosed(addNotifyPeerConnectionClosedOptions,
+            outgoingNotificationId = p2pInterface.AddNotifyPeerConnectionClosed(addNotifyPeerConnectionClosedOptions,
                 null, OnRemoteConnectionClosed);
 
             if (outgoingNotificationId == 0 || incomingNotificationId == 0) {
@@ -69,8 +74,8 @@ namespace EpicTransport {
         }
 
         protected void Dispose() {
-            EOSSDKComponent.GetP2PInterface().RemoveNotifyPeerConnectionRequest(incomingNotificationId);
-            EOSSDKComponent.GetP2PInterface().RemoveNotifyPeerConnectionClosed(outgoingNotificationId);
+            p2pInterface.RemoveNotifyPeerConnectionRequest(incomingNotificationId);
+            p2pInterface.RemoveNotifyPeerConnectionClosed(outgoingNotificationId);
 
             transport.ResetIgnoreMessagesAtStartUpTimer();
         }
@@ -112,7 +117,7 @@ namespace EpicTransport {
         }
 
         protected void SendInternal(ProductUserId target, SocketId socketId, InternalMessages type) {
-            EOSSDKComponent.GetP2PInterface().SendPacket(new SendPacketOptions() {
+            p2pInterface.SendPacket(new SendPacketOptions() {
                 AllowDelayedDelivery = true,
                 Channel = (byte) internal_ch,
                 Data = new byte[] { (byte) type },
@@ -125,7 +130,7 @@ namespace EpicTransport {
 
 
         protected void Send(ProductUserId host, SocketId socketId, byte[] msgBuffer, byte channel) {
-            Result result = EOSSDKComponent.GetP2PInterface().SendPacket(new SendPacketOptions() {
+            Result result = p2pInterface.SendPacket(new SendPacketOptions() {
                 AllowDelayedDelivery = true,
                 Channel = channel,
                 Data = msgBuffer,
@@ -141,7 +146,7 @@ namespace EpicTransport {
         }
 
         private bool Receive(out ProductUserId clientProductUserId, out SocketId socketId, out byte[] receiveBuffer, byte channel) {
-            Result result = EOSSDKComponent.GetP2PInterface().ReceivePacket(new ReceivePacketOptions() {
+            Result result = p2pInterface.ReceivePacket(new ReceivePacketOptions() {
                 LocalUserId = EOSSDKComponent.LocalUserProductId,
                 MaxDataSizeBytes = P2PInterface.MaxPacketSize,
                 RequestedChannel = channel
@@ -263,8 +268,8 @@ namespace EpicTransport {
 
                             OnReceiveData(data, keyValuePair.Key.productUserId, keyValuePair.Key.channel);
 
-                            if(transport.ServerActive() || transport.ClientActive())
-                                emptyPacketLists.Add(keyValuePair.Value[packetList]);
+                            //keyValuePair.Value[packetList].Clear();
+                            emptyPacketLists.Add(keyValuePair.Value[packetList]);
                         }
                     }
 
